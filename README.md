@@ -15,7 +15,8 @@ This software follows these set of rules:
 4. Must be fully open-source
 5. Must be multi-platform
 ```
-
+## Current Demo Image (1/24/25)
+![alt text](https://github.com/christianbryant/python_epaper_ditherer/blob/main/Program%20Files/Images/demo_image.png)
 ## Items Needing to be Completed
 
 * Adjustible display size (For other types of E-Paper Displays)
