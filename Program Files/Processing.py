@@ -3,6 +3,7 @@ import numpy as np
 import os
 import shutil
 from settings import ProgramSettings
+import customtkinter as ctk
 
 # Define the color palette
 color_palette = [
@@ -58,15 +59,14 @@ class Image_Processing:
 
             os.chdir(settings.get_inputfolder())
 
-            self.convert_image_2_dithered(f"{img}.png", settings=settings)
+            self.dithered_img = self.convert_image_2_dithered(f"{img}.png", settings=settings)
 
-            self.convert_image_2_7_colors(img, "dithered.png", settings=settings)
+            self.convert_image_2_7_colors(img, self.dithered_img, settings=settings)
 
             self.update_image_array(img)
 
             os.chdir(f"{img}")
             if settings.get_debug() is False:
-                os.remove("dithered.png")
                 shutil.rmtree("jpgs")
             os.chdir("..")
 
@@ -171,16 +171,19 @@ class Image_Processing:
         p_img.putpalette(palette)
         quantized_image = resized_image.quantize(palette=p_img)
         dithered_image = quantized_image.convert('P')
-        # TODO This needs to be dynamic
-        if settings.get_preview() is False:
+        if "None" not in settings.get_outputfolder():
             output_folder = settings.get_outputfolder()
             os.chdir(f"{output_folder}/{image.replace('.png', '')}")
+        if settings.get_debug() is True:
+            settings.get_debugframe().textbox.insert(ctk.END,f"Output images at: {settings.get_outputfolder()}\n")
+            # print(f"Output folder: {settings.get_outputfolder()}")
             dithered_image.save("dithered.png")
         return dithered_image
 
     def convert_image_2_7_colors(self, name, image, settings):
         # Open the input image
-        input_image = Image.open(image)
+        input_image = image
+
         input_image = input_image.convert('RGB')
 
         # Find each color in the image, create an new image for only that color and save it

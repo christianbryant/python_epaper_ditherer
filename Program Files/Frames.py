@@ -37,6 +37,7 @@ class FolderSelectFrame(ctk.CTkFrame):
             # Display the selected folder path
             self.entry.delete(0, ctk.END)  # Clear the text box first
             # Sets the users input in our settings
+            #TODO When the user selects a folder, and preview is already selected, update the preview frame
             if "Input" in self.label:
                 Settings.set_inputfolder(self.folder_selected)
             elif "Output" in self.label:
@@ -92,15 +93,20 @@ class SettingsFrame(ctk.CTkFrame):
                 Settings.set_rotate(value=True)
                 if Settings.get_preview() is True:
                     self.preview_event()
+                if Settings.get_debug() is True:
+                    Settings.get_debugframe().textbox.insert(ctk.END,"RotateOn\n")
         elif "Preview" in self.val:
             if "Off" in self.val:
                 print("PreviewOff")
                 Settings.set_preview(value=False)
                 self.preview_event()
+                if Settings.get_debug() is True:
+                    Settings.get_debugframe().textbox.insert(ctk.END,"PreviewOff\n")
             else:
-                print("PreviewOn")
                 Settings.set_preview(value=True)
                 self.preview_event()
+                if Settings.get_debug() is True:
+                    Settings.get_debugframe().textbox.insert(ctk.END,"PreviewOn\n")
         elif "Fit" in self.val:
             if "Off" in self.val:
                 print("FitOff")
@@ -112,18 +118,69 @@ class SettingsFrame(ctk.CTkFrame):
             if "Off" in self.val:
                 print("DebugOff")
                 Settings.set_debug(value=False)
+                self.debug_event()
             else:
-                print("DebugOn")
                 Settings.set_debug(value=True)
+                self.debug_event()
 
     def preview_event(self):
         processor = Image_Processing()
+        #If the preview is not open and the user enables preview
         if "None" not in Settings.get_inputfolder() and Settings.get_preview() is True:
             Settings.set_dithered_preview(processor.process_preview(Settings))
-            self.image_frame = PreviewFrame(master=self.master.master.master, prev_images=Settings.get_dithered_preview())
-            self.image_frame.grid(row=0,column=1,padx=(40,5),pady=(20, 100),sticky="nw")
+            # Check if preview has already been displayed or not, aka updated rotate settings
+            if Settings.get_previewframe() is not None:
+                Settings.get_previewframe().destroy()
+            # Check if debug is already enabled or not
+            if Settings.get_debug() is False:
+                self.image_frame = PreviewFrame(master=Settings.get_masterframe(), prev_images=Settings.get_dithered_preview())
+                Settings.set_previewframe(self.image_frame)
+                self.image_frame.grid(row=0,column=1,padx=(40,5),pady=(20, 100),sticky="nw")
+            else:
+                Settings.get_debugframe().destroy()
+                self.image_frame = DebugAndPreviewFrame(master=Settings.get_masterframe(),  prev_images=Settings.get_dithered_preview())
+                Settings.set_previewframe(self.image_frame)
+                Settings.set_debugframe(self.image_frame.debugframe)
+                self.image_frame.grid(row=0,column=1,padx=(40,5),pady=(20, 100),sticky="nw")
+        elif Settings.get_preview() is False and Settings.get_previewframe() is not None:
+            if Settings.get_debug() is False:
+                Settings.get_previewframe().master.master.destroy()
+                Settings.set_previewframe(None)
+            else:
+                Settings.get_debugframe().destroy()
+                Settings.get_previewframe().destroy()
+                Settings.set_previewframe(None)
+                self.debugframe = DebugFrame(master=Settings.get_masterframe())
+                self.debugframe.grid(row=0,column=1,padx=(40,5),pady=(20, 100),sticky="nw")
+                Settings.set_debugframe(self.debugframe)
+        
 
-
+    def debug_event(self):
+        #If the debug is not open and the user enables debug
+        if Settings.get_debug() is True and Settings.get_debugframe() is None:
+            #Check if preview is already enabled or not
+            if Settings.get_previewframe() is not None:
+                Settings.get_previewframe().master.master.destroy()
+                Settings.set_previewframe(None)
+                self.image_frame = DebugAndPreviewFrame(master=Settings.get_masterframe(),  prev_images=Settings.get_dithered_preview())
+                Settings.set_previewframe(self.image_frame)
+                Settings.set_debugframe(self.image_frame.debugframe)
+                self.image_frame.grid(row=0,column=1,padx=(40,5),pady=(20, 100),sticky="nw")
+            else:
+                self.debugframe = DebugFrame(master=Settings.get_masterframe())
+                self.debugframe.grid(row=0,column=1,padx=(40,5),pady=(20, 100),sticky="nw")
+                Settings.set_debugframe(self.debugframe)
+        elif Settings.get_debug() is False and Settings.get_debugframe() is not None:
+            if Settings.get_previewframe() is not None:
+                Settings.get_debugframe().destroy()
+                Settings.set_debugframe(None)
+                Settings.get_previewframe().destroy()
+                self.image_frame = PreviewFrame(master=Settings.get_masterframe(), prev_images=Settings.get_dithered_preview())
+                Settings.set_previewframe(self.image_frame)
+                self.image_frame.grid(row=0,column=1,padx=(40,5),pady=(20, 100),sticky="nw")
+            else:
+                Settings.get_debugframe().destroy()
+                Settings.set_debugframe(None)
             
 
 class PreviewFrame(ctk.CTkScrollableFrame):
@@ -139,6 +196,25 @@ class PreviewFrame(ctk.CTkScrollableFrame):
                 self.image_label = ctk.CTkLabel(self, image=self.image_frame, text="")
                 self.image_label.pack(padx=10, pady=10)
                 
+class DebugFrame(ctk.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.textbox = ctk.CTkTextbox(master=self, width=600, corner_radius=0)
+        self.textbox.grid(row=0, column=0, padx=10, pady=(5, 10), sticky="nw")
+        self.textbox.insert(ctk.END, "Debugging Mode Enabled\n")
+
+#TODO Make this where I can switch between debug and preview states.
+class DebugAndPreviewFrame(ctk.CTkFrame):
+    def __init__(self, master, prev_images, **kwargs):
+        super().__init__(master, **kwargs)
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=0)
+
+        self.debugframe = DebugFrame(master=self)
+        self.debugframe.grid(row=0,column=0,padx=5,pady=(10, 5),sticky="nw")
+
+        self.previewframe = PreviewFrame(master=self, prev_images=prev_images)
+        self.previewframe.grid(row=1,column=0,padx=5,pady=(5, 10),sticky="nw")
         
 
 class TitleFrame(ctk.CTkFrame):
@@ -161,7 +237,7 @@ class TitleFrame(ctk.CTkFrame):
         self.label2 = ctk.CTkLabel(self, text=title_text2, font=("Roboto", 16))
         self.label2.grid(row=2, column=0, padx=20, pady=5, sticky="w")
 
-#TODO Setup Image Previews
+
 class ImagesFrame(ctk.CTkFrame):
     def __init__(self, master, app_image, **kwargs):
         super().__init__(master, **kwargs)
@@ -169,7 +245,6 @@ class ImagesFrame(ctk.CTkFrame):
         self.image_frame = ctk.CTkImage(light_image=app_image, dark_image=app_image, size=(105,105))
         self.image_label = ctk.CTkLabel(self, image=self.image_frame, text="")
         self.image_label.pack(padx=10, pady=10)
-
 
 
 class TitleAndImageFrame(ctk.CTkFrame):
@@ -195,6 +270,7 @@ class ToplevelWindow(ctk.CTkToplevel):
 
         self.label = ctk.CTkLabel(self, text=error_text)
         self.label.pack(padx=20, pady=20)
+
 
 class ButtonFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
@@ -240,20 +316,22 @@ class AllSettingsFrame(ctk.CTkFrame):
         self.grid_rowconfigure(3, weight=0)
 
         self.input_folder_frame = FolderSelectFrame(master=self, label_text="Select Input Folder")
-        self.input_folder_frame.grid(row=0,column=0,padx=20,pady=(10, 10),sticky="nw")
+        self.input_folder_frame.grid(row=0,column=0,padx=20,pady=(10, 10),sticky="")
 
         self.output_folder_frame = FolderSelectFrame(master=self, label_text="Select Output Folder")
-        self.output_folder_frame.grid(row=1,column=0,padx=20,pady=(10, 10),sticky="nw")
+        self.output_folder_frame.grid(row=1,column=0,padx=20,pady=(10, 10),sticky="")
 
         self.settings_frame = SettingsFrame(master=self)
-        self.settings_frame.grid(row=2,column=0,padx=20,pady=(10, 10),sticky="nw")
+        self.settings_frame.grid(row=2,column=0,padx=20,pady=(10, 10),sticky="")
 
         self.button_frame = ButtonFrame(master=self)
-        self.button_frame.grid(row=3,column=0,padx=20,pady=(10, 20),sticky="nw")
+        self.button_frame.grid(row=3,column=0,padx=20,pady=(10, 20),sticky="")
+
 
 class TitleAndSettingsFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
+        Settings.set_masterframe(master)
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=0)
 
@@ -265,7 +343,8 @@ class TitleAndSettingsFrame(ctk.CTkFrame):
 
         self.pack()
         
-
+        
+# Not currently in use
 class TitleSettingsAndPreviewFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)

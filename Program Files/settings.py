@@ -6,6 +6,9 @@ class ProgramSettings:
             cls._instance = super(ProgramSettings, cls).__new__(cls)
             cls._instance._inputfolder = "None"
             cls._instance._outputfolder = "None"
+            cls._instance._masterframe = None
+            cls._instance._debugframe = None
+            cls._instance._previewframe = None
             cls._instance._rotate = False
             cls._instance._preview = False
             cls._instance._fit = False
@@ -25,6 +28,24 @@ class ProgramSettings:
     
     def set_outputfolder(self, value):
         self._outputfolder = value
+
+    def get_masterframe(self):
+        return self._masterframe
+    
+    def set_masterframe(self, value):
+        self._masterframe = value
+
+    def get_debugframe(self):
+        return self._debugframe
+    
+    def set_debugframe(self, value):
+        self._debugframe = value
+
+    def get_previewframe(self):
+        return self._previewframe
+    
+    def set_previewframe(self, value):
+        self._previewframe = value
 
     def set_displaysize(self, value):
         self._displaysize = value
