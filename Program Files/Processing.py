@@ -40,9 +40,8 @@ class Image_Processing:
         super().__init__()
         self.images = []
 
-    def process_images(self):
-        settings = ProgramSettings()
-        self.get_images()
+    def process_images(self, settings):
+        self.get_images(settings=settings)
         os.chdir(settings.get_outputfolder())
         total_img = len(self.images)
         each_percent = 1/total_img
@@ -59,9 +58,9 @@ class Image_Processing:
 
             os.chdir(settings.get_inputfolder())
 
-            self.convert_image_2_dithered(f"{img}.png")
+            self.convert_image_2_dithered(f"{img}.png", settings=settings)
 
-            self.convert_image_2_7_colors(img, "dithered.png")
+            self.convert_image_2_7_colors(img, "dithered.png", settings=settings)
 
             self.update_image_array(img)
 
@@ -71,8 +70,26 @@ class Image_Processing:
                 shutil.rmtree("jpgs")
             os.chdir("..")
 
-    def get_images(self):
-        settings = ProgramSettings()
+    def process_preview(self, settings):
+        self.get_images(settings=settings)
+        self.dithered_img = []
+        total_img = len(self.images)
+        for img in self.images:
+
+            os.chdir(settings.get_inputfolder())
+
+            dithered_result = self.convert_image_2_dithered(f"{img}.png", settings)
+
+            # Ensure that dithered_result is a PIL Image (or iterable of images) and extend the list
+            if isinstance(dithered_result, list):
+                self.dithered_img.extend(dithered_result)  # Append multiple images if a list
+            else:
+                self.dithered_img.append(dithered_result)  # Append a single image
+
+        return self.dithered_img
+
+
+    def get_images(self, settings):
         os.chdir(settings.get_inputfolder())
         for file in os.listdir():
             if file.endswith(".png"):
@@ -141,27 +158,28 @@ class Image_Processing:
                     bit_index = 7
                     byte_counter += 1
 
-    def convert_image_2_dithered(self, image):
+    def convert_image_2_dithered(self, image, settings):
         # Open the input image
-        settings = ProgramSettings()
         input_image = Image.open(image).convert('RGB')
         resized_image = input_image.copy()
-        #TODO Figure out an auto rotate feature for each image.
         if settings.get_rotate():
+            if(resized_image.size[1] > resized_image.size[0]):
                 resized_image = resized_image.transpose(Image.ROTATE_90)
+
         resized_image.thumbnail((600, 448), Image.LANCZOS)
         p_img = Image.new('P', resized_image.size)
         p_img.putpalette(palette)
         quantized_image = resized_image.quantize(palette=p_img)
         dithered_image = quantized_image.convert('P')
         # TODO This needs to be dynamic
-        output_folder = settings.get_outputfolder()
-        os.chdir(f"{output_folder}/{image.replace('.png', '')}")
-        dithered_image.save("dithered.png")
+        if settings.get_preview() is False:
+            output_folder = settings.get_outputfolder()
+            os.chdir(f"{output_folder}/{image.replace('.png', '')}")
+            dithered_image.save("dithered.png")
+        return dithered_image
 
-    def convert_image_2_7_colors(self, name, image):
+    def convert_image_2_7_colors(self, name, image, settings):
         # Open the input image
-        settings = ProgramSettings()
         input_image = Image.open(image)
         input_image = input_image.convert('RGB')
 

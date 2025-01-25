@@ -10,6 +10,8 @@ class ProgramSettings:
             cls._instance._preview = False
             cls._instance._fit = False
             cls._instance._debug = False
+            cls._instance._displaysize = ()
+            cls._instance._dithered_preview = []
         return cls._instance
     
     def get_inputfolder(self):
@@ -23,6 +25,18 @@ class ProgramSettings:
     
     def set_outputfolder(self, value):
         self._outputfolder = value
+
+    def set_displaysize(self, value):
+        self._displaysize = value
+
+    def get_displaysize(self):
+        return self._displaysize
+
+    def set_dithered_preview(self, value):
+        self._dithered_preview = value
+
+    def get_dithered_preview(self):
+        return self._dithered_preview
     
     def get_rotate(self):
         return self._rotate
